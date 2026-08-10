@@ -236,21 +236,3 @@ mobile/
 docs/superpowers/specs/
                       design doc for the phone→laptop direction
 ```
-
----
-
-## Notes from building it
-
-Things that cost real time, recorded so they don't again:
-
-- **Expo Go can't do speech-to-text.** No on-device STT module works without a custom dev
-  build. Recording plus server-side transcription is the way to keep Expo Go.
-- **Preparing a recorder takes long enough to eat the whole interaction.** Doing it on
-  press-in produced 68ms recordings. Prepare ahead of time; tap-to-toggle beats
-  press-and-hold for anything longer than a word.
-- **`playsInSilentMode: true`** is what makes `expo-speech` audible with the ringer
-  switched to silent. Without it the phone vibrates and stays mute.
-- **iOS suspends backgrounded apps**, which kills the Convex subscription. Expo Go must be
-  foregrounded for the phone to receive commands.
-- **`sk-proj-` OpenAI keys are org-scoped.** A valid key can still return
-  `credit_balance_exhausted` if the credits sit in a different organization.
