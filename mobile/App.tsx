@@ -186,8 +186,8 @@ function VoiceOrb({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     // Too short to contain speech — don't waste an API call on it.
-    if (held < 600) {
-      setError("Too quick. Hold the orb while you speak, then let go.");
+    if (held < 1000) {
+      setError(`Only ${(held / 1000).toFixed(1)}s captured. Tap, speak a full sentence, then tap again.`);
       onStage("idle");
       prepare();
       return;
@@ -234,20 +234,21 @@ function VoiceOrb({
   }
 
   const label = recorderState.isRecording
-    ? `Listening — ${(recorderState.durationMillis / 1000).toFixed(1)}s`
+    ? `Listening ${(recorderState.durationMillis / 1000).toFixed(1)}s — tap to send`
     : busy
       ? "Transcribing…"
       : ready
-        ? "Hold to talk"
+        ? "Tap to talk"
         : "Warming up the mic…";
 
   return (
     <View style={styles.orbWrap}>
       <Pressable
-        onPressIn={startRecording}
-        onPressOut={stopAndSend}
+        onPress={() => (recorderState.isRecording ? stopAndSend() : startRecording())}
         disabled={busy}
-        accessibilityLabel="Hold to talk to your laptop"
+        accessibilityLabel={
+          recorderState.isRecording ? "Stop recording and send" : "Tap to talk to your laptop"
+        }
       >
         <Animated.View
           style={[
