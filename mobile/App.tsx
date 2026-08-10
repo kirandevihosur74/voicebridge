@@ -22,6 +22,7 @@ import {
   Animated,
   Easing,
   ScrollView,
+  LogBox,
 } from "react-native";
 import {
   ConvexProvider,
@@ -45,7 +46,16 @@ import {
 } from "expo-audio";
 
 const CONVEX_URL = "https://helpful-donkey-68.convex.cloud";
-const convex = new ConvexReactClient(CONVEX_URL);
+
+// The app surfaces its own errors in the UI, so the client's console output is
+// duplicate noise on the device.
+const convex = new ConvexReactClient(CONVEX_URL, { logger: false });
+
+// Library deprecation notices we can't act on before the demo.
+LogBox.ignoreLogs([
+  "SafeAreaView has been deprecated",
+  "new NativeEventEmitter",
+]);
 
 /** The voice the phone answers in. Samantha is the classic iOS assistant voice. */
 const REPLY_VOICE_HINT = "samantha";
