@@ -104,7 +104,7 @@ server.tool(
 
 server.tool(
   "wait_for_phone_request",
-  "Listen for a spoken request the user sends from their phone, and return it so you can carry it out on this laptop. Blocks for up to 25 seconds. Call this again after handling each request to keep listening. Use when the user asks you to listen to / watch their phone for requests.",
+  `Listen for a spoken request the user sends from their phone, and return it so you can carry it out on this laptop. Blocks for up to ${LISTEN_WINDOW_MS / 1000} seconds. Call this again after handling each request to keep listening. Use when the user asks you to listen to / watch their phone for requests.`,
   {},
   async () => {
     const start = Date.now();
