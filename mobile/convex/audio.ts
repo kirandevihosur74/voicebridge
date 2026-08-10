@@ -1,6 +1,21 @@
-import { action, mutation } from "./_generated/server";
+import { action, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { api } from "./_generated/api";
+
+// Diagnostic: what actually landed in storage, newest first.
+export const recentUploads = query({
+  args: {},
+  handler: async (ctx) => {
+    const files = await ctx.db.system.query("_storage").order("desc").take(5);
+    return files.map((f) => ({ id: f._id, size: f.size, type: f.contentType }));
+  },
+});
+
+// Diagnostic: a downloadable URL for one stored file.
+export const urlFor = query({
+  args: { id: v.id("_storage") },
+  handler: async (ctx, args) => await ctx.storage.getUrl(args.id),
+});
 
 // Phone asks for a one-time upload URL, then POSTs the recording straight to storage.
 export const generateUploadUrl = mutation({

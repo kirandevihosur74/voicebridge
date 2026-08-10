@@ -121,8 +121,36 @@ function VoiceOrb({
   const transcribe = useAction(api.audio.transcribeAndEnqueue);
 
   const [busy, setBusy] = useState(false);
+  const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const pulse = useRef(new Animated.Value(1)).current;
+  const startedAt = useRef(0);
+
+  /**
+   * Preparing the recorder takes long enough that doing it on press-in eats the
+   * whole hold — the first attempt recorded 68ms. Prepare ahead of time so
+   * press-in only has to call record().
+   */
+  const prepare = useCallback(async () => {
+    try {
+      const perm = await requestRecordingPermissionsAsync();
+      if (!perm.granted) {
+        setError("Microphone access is off. Turn it on in Settings to talk.");
+        setReady(false);
+        return;
+      }
+      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+      await recorder.prepareToRecordAsync();
+      setReady(true);
+    } catch (e: any) {
+      setError(String(e?.message ?? e));
+      setReady(false);
+    }
+  }, [recorder]);
+
+  useEffect(() => {
+    prepare();
+  }, [prepare]);
 
   useEffect(() => {
     if (recorderState.isRecording) {
@@ -138,15 +166,13 @@ function VoiceOrb({
     pulse.setValue(1);
   }, [recorderState.isRecording, pulse]);
 
-  async function startRecording() {
+  function startRecording() {
     setError(null);
-    const perm = await requestRecordingPermissionsAsync();
-    if (!perm.granted) {
-      setError("Microphone access is off. Turn it on in Settings to talk.");
+    if (!ready) {
+      setError("Microphone still warming up. Try again in a second.");
       return;
     }
-    await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
-    await recorder.prepareToRecordAsync();
+    startedAt.current = Date.now();
     recorder.record();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onStage("listening");
@@ -154,15 +180,23 @@ function VoiceOrb({
 
   async function stopAndSend() {
     if (!recorderState.isRecording) return;
+    const held = Date.now() - startedAt.current;
     await recorder.stop();
     const uri = recorder.uri;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    // Recording is done; let playback out of the silent switch again.
-    await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
+
+    // Too short to contain speech — don't waste an API call on it.
+    if (held < 600) {
+      setError("Too quick. Hold the orb while you speak, then let go.");
+      onStage("idle");
+      prepare();
+      return;
+    }
 
     if (!uri) {
       setError("That recording came back empty. Hold a moment longer.");
       onStage("idle");
+      prepare();
       return;
     }
 
@@ -194,14 +228,18 @@ function VoiceOrb({
       onStage("idle");
     } finally {
       setBusy(false);
+      // The recorder must be prepared again before the next take.
+      prepare();
     }
   }
 
   const label = recorderState.isRecording
-    ? "Listening — release to send"
+    ? `Listening — ${(recorderState.durationMillis / 1000).toFixed(1)}s`
     : busy
       ? "Transcribing…"
-      : "Hold to talk";
+      : ready
+        ? "Hold to talk"
+        : "Warming up the mic…";
 
   return (
     <View style={styles.orbWrap}>
