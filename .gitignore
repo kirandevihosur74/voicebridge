@@ -1,0 +1,16 @@
+node_modules/
+.DS_Store
+*.log
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# local env files — Convex deployment config, never commit
+.env*.local
+
+# native build output
+/mobile/ios
+/mobile/android
